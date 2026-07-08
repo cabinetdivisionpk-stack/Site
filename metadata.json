@@ -1,0 +1,6 @@
+{
+  "name": "AURA Pro",
+  "description": "Acoustic Anatomy Re-engineered - Interactive 3D Scroll-Explosion Experience",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
