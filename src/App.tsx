@@ -23,6 +23,8 @@ import {
   Info
 } from "lucide-react";
 
+let cachedImages: HTMLImageElement[] = [];
+
 export default function App() {
   // Preloading & Frame Sequence States
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -111,31 +113,52 @@ export default function App() {
 
   // 1. Initial Preloader & Canvas Setup
   useEffect(() => {
+    let isMounted = true;
+    const totalFrames = 151;
+
+    if (cachedImages.length === totalFrames) {
+      imagesRef.current = cachedImages;
+      setLoadingProgress(100);
+      setLoadingComplete(true);
+      return;
+    }
+
     let loaded = 0;
-    const totalFrames = 240;
     const preloadedImages: HTMLImageElement[] = [];
 
     for (let i = 1; i <= totalFrames; i++) {
       const img = new Image();
       const frameNum = String(i).padStart(3, '0');
-      img.src = `/headphone/ezgif-frame-${frameNum}.jpg`;
+      img.src = `/frames/ezgif-frame-${frameNum}.jpg`;
       img.onload = () => {
+        if (!isMounted) return;
         loaded++;
-        setLoadingProgress(Math.floor((loaded / totalFrames) * 100));
+        const progress = Math.floor((loaded / totalFrames) * 100);
+        setLoadingProgress(progress);
         if (loaded === totalFrames) {
+          cachedImages = preloadedImages;
+          imagesRef.current = preloadedImages;
           setLoadingComplete(true);
         }
       };
       img.onerror = () => {
+        if (!isMounted) return;
         loaded++;
-        setLoadingProgress(Math.floor((loaded / totalFrames) * 100));
+        const progress = Math.floor((loaded / totalFrames) * 100);
+        setLoadingProgress(progress);
         if (loaded === totalFrames) {
+          cachedImages = preloadedImages;
+          imagesRef.current = preloadedImages;
           setLoadingComplete(true);
         }
       };
       preloadedImages.push(img);
     }
     imagesRef.current = preloadedImages;
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // 2. Responsive Canvas Sizing & Drawing Function
@@ -149,24 +172,41 @@ export default function App() {
     const targetHeight = Math.floor(rect.height * dpr);
     
     if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
-      canvas.width = targetWidth;
-      canvas.height = targetHeight;
+      if (targetWidth > 0 && targetHeight > 0) {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+      }
     }
   };
 
   const drawImageContain = (img: HTMLImageElement) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const targetWidth = Math.floor(rect.width * dpr);
+    const targetHeight = Math.floor(rect.height * dpr);
+    
+    // Auto-correct any initially collapsed canvas sizes (e.g., loaded before full layout painting)
+    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+      if (targetWidth > 0 && targetHeight > 0) {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+      }
+    }
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const dpr = window.devicePixelRatio || 1;
     const width = canvas.width / dpr;
     const height = canvas.height / dpr;
     
     ctx.resetTransform();
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, width, height);
+
+    if (width === 0 || height === 0) return;
 
     const imgRatio = img.width / img.height;
     const canvasRatio = width / height;
@@ -218,8 +258,8 @@ export default function App() {
       let scrollFraction = (scrollTop - startScroll) / (endScroll - startScroll);
       scrollFraction = Math.max(0, Math.min(1, scrollFraction));
       
-      // Map back to frame number (1-240)
-      targetFrame.current = Math.max(1, Math.min(240, Math.floor(scrollFraction * 240) + 1));
+      // Map back to frame number (1-151)
+      targetFrame.current = Math.max(1, Math.min(151, Math.floor(scrollFraction * 151) + 1));
     };
 
     const handleResize = () => {
@@ -228,6 +268,12 @@ export default function App() {
       const img = imagesRef.current[activeFrame - 1];
       if (img) drawImageContain(img);
     };
+
+    // Synchronize initial scroll frame position on load
+    handleScroll();
+    
+    // Quick frame sync on mount
+    currentFrame.current = targetFrame.current;
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("resize", handleResize);
@@ -264,38 +310,38 @@ export default function App() {
       let currentPanel = 0;
       let stageNum = 1;
 
-      if (activeFrameIdx >= 1 && activeFrameIdx <= 25) {
+      if (activeFrameIdx >= 1 && activeFrameIdx <= 16) {
         currentPanel = 0;
         stageNum = 1;
-      } else if (activeFrameIdx >= 35 && activeFrameIdx <= 75) {
+      } else if (activeFrameIdx >= 22 && activeFrameIdx <= 47) {
         currentPanel = 1;
         stageNum = 1;
-      } else if (activeFrameIdx >= 85 && activeFrameIdx <= 125) {
+      } else if (activeFrameIdx >= 53 && activeFrameIdx <= 79) {
         currentPanel = 2;
         stageNum = 2;
-      } else if (activeFrameIdx >= 135 && activeFrameIdx <= 175) {
+      } else if (activeFrameIdx >= 85 && activeFrameIdx <= 110) {
         currentPanel = 3;
         stageNum = 3;
-      } else if (activeFrameIdx >= 185 && activeFrameIdx <= 215) {
+      } else if (activeFrameIdx >= 116 && activeFrameIdx <= 135) {
         currentPanel = 4;
         stageNum = 4;
-      } else if (activeFrameIdx >= 225 && activeFrameIdx <= 240) {
+      } else if (activeFrameIdx >= 142 && activeFrameIdx <= 151) {
         currentPanel = 5;
         stageNum = 5;
       } else {
-        if (activeFrameIdx < 35) {
+        if (activeFrameIdx < 22) {
           currentPanel = 0;
           stageNum = 1;
-        } else if (activeFrameIdx < 85) {
+        } else if (activeFrameIdx < 53) {
           currentPanel = 1;
           stageNum = 1;
-        } else if (activeFrameIdx < 135) {
+        } else if (activeFrameIdx < 85) {
           currentPanel = 2;
           stageNum = 2;
-        } else if (activeFrameIdx < 185) {
+        } else if (activeFrameIdx < 116) {
           currentPanel = 3;
           stageNum = 3;
-        } else if (activeFrameIdx < 225) {
+        } else if (activeFrameIdx < 142) {
           currentPanel = 4;
           stageNum = 4;
         } else {
@@ -322,7 +368,7 @@ export default function App() {
 
   // Handle stage dot navigation click
   const handleStageDotClick = (index: number) => {
-    const targetFrames = [55, 105, 155, 200, 232];
+    const targetFrames = [35, 66, 97, 126, 146];
     const frameVal = targetFrames[index];
     
     const container = scrollContainerRef.current;
@@ -333,7 +379,7 @@ export default function App() {
     const viewportHeight = window.innerHeight;
     const scrollDistance = containerHeight - viewportHeight;
     
-    const fraction = (frameVal - 1) / 239;
+    const fraction = (frameVal - 1) / 150;
     const targetScrollY = containerTop + (fraction * scrollDistance);
     
     window.scrollTo({
